@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Wonder Wall
 
-## Getting Started
+*Play together, without talking.* Event-goers collect themed stickers. Tapping one at a station (NFC or QR)
+puts its character onto a big shared wall. People standing at the wall gather the characters with their hands,
+and every tap from anyone unlocks more for everyone: lanterns, a dance party, fireworks, and a Big Friend.
 
-First, run the development server:
+- **`/wall.html`**: the big screen or projector.
+- **`/station.html`**: a phone or tablet next to the wall that reads stickers.
+- **`/stickers.html`**: a printable sticker sheet, which can also write NFC tags from Android Chrome.
+
+## Run locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev          # http://localhost:3000
+npm run demo         # low unlock thresholds (2, 4, 6, 9 taps)
+npm run dev:phone    # HTTPS on your network, so phones can use the camera and NFC
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Locally, the shared world lives in memory and resets when the server restarts.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy (Vercel)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Pushing to `main` deploys automatically. For walls and stations to share one world, add **Upstash Redis**
+from the Vercel project's **Storage** tab (Marketplace → Upstash → Redis) and connect it to this project.
+That sets `KV_REST_API_URL` and `KV_REST_API_TOKEN`, then redeploy. Without it, each server instance keeps
+its own memory, and the wall shows "Shared storage not connected".
 
-## Learn More
+Optional environment variables:
+- `MILESTONES=3,7,12,20`: unlock thresholds for lanterns, dance, fireworks, Big Friend.
 
-To learn more about Next.js, take a look at the following resources:
+## How it's built
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `public/`: the three pages (plain HTML/JS/canvas) plus `shared.js` (characters, rules, scenes).
+- `app/api/[route]/route.ts`: the API (`state`, `events`, `info`, `tap`, `action`, `scene`, `reset`).
+- `lib/core.js`: world rules. `lib/store.js`: Redis or in-memory storage with a write lock.
+- Walls poll `/api/events?since=<seq>` about once a second.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Three scenarios
 
-## Deploy on Vercel
+| Scene | "Leave something" action | Simulated crowd |
+|---|---|---|
+| Community market | Plant a flower | People drift by 1–2 at a time |
+| Theme park queue | Release a balloon | A steady line where the same people re-tap |
+| Music festival | Wave a glow stick | Bursts of 4–6 people between sets |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Many people at once: three wordless gestures
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Characters never speak. They react only with motion and light.
+
+1. **Raise a hand → nearby characters gather.** Each character follows the nearest hand, up to 7 per hand.
+2. **Hold still → glow** in that hand's color.
+3. **Two hands close together → a light bridge.** Sparks cross it, and both groups jump together.
+
+A tap or click sends a ripple.
+
+## Real vs. simulated
+
+| Piece | Status |
+|---|---|
+| Shared world across devices, NFC read/write (Android Chrome), QR scan | Real |
+| Projected wall | Stand-in: any browser full screen |
+| Visitor's hands | Simulated with the mouse and touch points (camera tracking later) |
+| "Simulate a sticker tap" / "Simulate crowd" | Simulated, and labelled on screen |
+
+**Wall keys:** `1` `2` `3` switch scene · `S` simulate crowd · `H` hide the demo bar · **Shift+R** reset the current scene.

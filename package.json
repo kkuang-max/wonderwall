@@ -1,9 +1,11 @@
 {
-  "name": "nextjs",
+  "name": "wonderwall",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:phone": "next dev -H 0.0.0.0 --experimental-https",
+    "demo": "MILESTONES=2,4,6,9 next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

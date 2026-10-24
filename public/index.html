@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wonder Wall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  main { max-width: 900px; margin: 0 auto; padding: 32px 16px 48px; }
+  .hero { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .hero canvas { width: 240px; height: 120px; }
+  h1 { font-size: clamp(36px, 7vw, 60px); margin: 0; line-height: 1; }
+  .tag { color: var(--ink-soft); font-size: 1.1rem; margin: 8px 0 0; max-width: 46ch; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 28px 0; }
+  .card { background: #fff; border: 1.5px solid var(--line); border-radius: var(--radius); padding: 18px; text-decoration: none; color: var(--ink); display: block; transition: transform .12s, box-shadow .12s; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(42,30,50,.08); }
+  .card .e { font-size: 30px; }
+  .card b { display: block; font-size: 1.2rem; margin: 6px 0 4px; }
+  .card span { color: var(--ink-soft); font-size: .95rem; }
+  section h2 { font-size: 1.2rem; margin: 28px 0 8px; }
+  ol, ul { padding-left: 1.2em; line-height: 1.6; }
+  table { border-collapse: collapse; width: 100%; font-size: .95rem; background: #fff; border-radius: 12px; overflow: hidden; }
+  td, th { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .urls code { background: #fff; padding: .15em .45em; border-radius: 6px; border: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <canvas id="crew" width="480" height="240" aria-hidden="true"></canvas>
+    <div>
+      <h1>Wonder Wall</h1>
+      <p class="tag">Play together, without talking. Tap a collectible sticker at a station and your character joins a shared world on the wall. Every tap from anyone unlocks more for everyone.</p>
+    </div>
+  </div>
+
+  <div class="cards">
+    <a class="card" href="wall.html"><div class="e">🖼️</div><b>Wall</b><span>Open on the big screen or projector. Press F11 for full screen.</span></a>
+    <a class="card" href="station.html"><div class="e">📲</div><b>Station</b><span>Open on a phone or tablet next to the wall. It reads stickers by NFC or QR.</span></a>
+    <a class="card" href="stickers.html"><div class="e">🏷️</div><b>Stickers</b><span>Print the sticker sheet, and write NFC tags from Android Chrome.</span></a>
+  </div>
+
+  <section class="urls">
+    <h2>Open on other devices</h2>
+    <p id="urls">Looking up addresses…</p>
+  </section>
+
+  <section>
+    <h2>What’s real and what’s simulated</h2>
+    <table>
+      <tr><th>Piece</th><th>In this prototype</th></tr>
+      <tr><td>Shared world synced across devices</td><td><span class="real-tag">Real</span> Next.js API on Vercel. State is kept in Redis (Upstash), and walls check for updates about every second.</td></tr>
+      <tr><td>NFC sticker tap</td><td><span class="real-tag">Real</span> on Chrome for Android (Web NFC). Works with written or blank NTAG stickers.</td></tr>
+      <tr><td>QR on the sticker</td><td><span class="real-tag">Real</span> station camera scan, or any phone’s camera app.</td></tr>
+      <tr><td>Projected wall</td><td><span class="sim-tag">Stand-in</span> a laptop or TV in a browser. A projector plugs into the same page.</td></tr>
+      <tr><td>Dedicated reader kiosk</td><td><span class="sim-tag">Stand-in</span> a phone or tablet running the Station page.</td></tr>
+      <tr><td>“Simulate a sticker tap” buttons</td><td><span class="sim-tag">Simulated</span> for demos with no sticker. The wall feed marks these taps.</td></tr>
+    </table>
+  </section>
+</main>
+<script src="shared.js"></script>
+<script>
+  const g = document.getElementById('crew').getContext('2d');
+  const t0 = performance.now();
+  (function loop(now) {
+    const t = (now - t0) / 1000;
+    g.clearRect(0, 0, 480, 240);
+    WW.CHAR_IDS.forEach((id, i) => {
+      const x = 50 + i * 76, y = 150 - Math.abs(Math.sin(t * 3 + i)) * 16 - (id === 'bird' ? 30 : 0);
+      WW.drawChar(g, id, x, y, id === 'koi' ? 24 : 28, t, { seed: i * 13, flying: id === 'bird' });
+    });
+    requestAnimationFrame(loop);
+  })(t0);
+  fetch('/api/info').then((r) => r.json()).then((info) => {
+    const el = document.getElementById('urls');
+    if (info.vercel) { el.innerHTML = 'Open <code>' + location.origin + '</code> on any device.' + (info.persistent ? '' : '<br><small>Shared storage is not connected yet: add Upstash Redis in the Vercel project’s Storage tab.</small>'); return; }
+    if (!info.urls.length) { el.textContent = 'No network address found. Connect to Wi-Fi.'; return; }
+    el.innerHTML = info.urls.map((u) => '<code>' + u + '</code>').join(' &nbsp; ') +
+      '<br><small>Phones need https:// for the camera and NFC: run <code>npm run dev:phone</code>, or use the Vercel deployment.</small>';
+  }).catch(() => {});
+</script>
+</body>
+</html>

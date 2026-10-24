@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wonder Wall · Wall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --fg: #f4f1ff; --dim: rgba(244,241,255,.55); --faint: rgba(244,241,255,.18); --font: 'Outfit', system-ui, -apple-system, sans-serif; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #07060f; color: var(--fg); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+  button { font: inherit; cursor: pointer; }
+  [hidden] { display: none !important; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; cursor: none; touch-action: none; }
+  .hud { position: fixed; z-index: 2; pointer-events: none; }
+
+  .brand { top: 3vh; left: 3vw; }
+  .brand .mark { font-size: 11px; letter-spacing: .32em; text-transform: uppercase; color: var(--dim); }
+  .brand .scene { margin-top: 6px; font-size: clamp(18px, 1.9vw, 30px); font-weight: 200; letter-spacing: .01em; }
+
+  .meter { top: 3vh; right: 3vw; text-align: right; width: clamp(140px, 13vw, 220px); }
+  .meter .count { font-size: clamp(20px, 2vw, 32px); font-weight: 200; font-variant-numeric: tabular-nums; }
+  .meter .count span { color: var(--dim); }
+  .meter .line { height: 2px; background: var(--faint); margin: 8px 0 7px; border-radius: 2px; overflow: hidden; }
+  .meter .line i { display: block; height: 100%; width: 0; background: var(--fg); transition: width 1s cubic-bezier(.2,.8,.2,1); }
+  .meter .next { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--dim); }
+
+  .join { right: 3vw; bottom: 3vh; display: flex; align-items: center; gap: 12px; }
+  .join .qr { width: clamp(52px, 4.6vw, 80px); padding: 4px; background: #fff; border-radius: 8px; }
+  .join .qr svg { display: block; width: 100%; height: auto; }
+  .join .txt { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--dim); text-align: right; line-height: 1.7; }
+
+  .empty { left: 50%; top: 44%; transform: translate(-50%, -50%); text-align: center; font-weight: 200; font-size: clamp(16px, 1.6vw, 26px);
+    letter-spacing: .04em; transition: opacity .8s; }
+  .empty small { display: block; margin-top: 8px; font-size: 11px; letter-spacing: .26em; text-transform: uppercase; color: var(--dim); }
+  .empty.hide { opacity: 0; }
+
+  .banner { left: 50%; top: 40%; transform: translate(-50%, -50%); text-align: center; opacity: 0; transition: opacity .9s ease, letter-spacing 1.4s ease; letter-spacing: .02em; }
+  .banner.show { opacity: 1; letter-spacing: .06em; }
+  .banner .k { font-size: 11px; letter-spacing: .4em; text-transform: uppercase; color: var(--dim); }
+  .banner h2 { margin: 10px 0 0; font-weight: 200; font-size: clamp(28px, 3.6vw, 60px); }
+
+  /* Demo controls: quiet until you reach for them. H hides them entirely. */
+  .demo { left: 3vw; bottom: 3vh; pointer-events: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; opacity: .3; transition: opacity .3s;
+    max-width: calc(100vw - 6vw - 220px); }
+  .demo:hover, .demo:focus-within { opacity: 1; }
+  .demo .tag { font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: #ffb27a; border: 1px dashed #ffb27a; border-radius: 4px; padding: 3px 7px; margin-right: 8px; }
+  .demo button { border: 0; background: transparent; color: var(--dim); padding: 6px 10px; border-radius: 999px; font-size: 12px; letter-spacing: .06em; }
+  .demo button:hover { color: var(--fg); }
+  .demo button[aria-pressed="true"] { color: #07060f; background: var(--fg); }
+  .demo .sep { width: 1px; height: 14px; background: var(--faint); margin: 0 6px; }
+  .hidden-demo .demo { display: none; }
+
+  .offline { position: fixed; z-index: 4; top: 12px; left: 50%; transform: translateX(-50%); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: #ffd36e; display: none; }
+</style>
+</head>
+<body>
+<canvas id="world" aria-label="The shared Wonder Wall world"></canvas>
+
+<div class="hud brand"><div class="mark">Wonder Wall</div><div class="scene" id="sceneName"></div></div>
+
+<div class="hud meter" aria-live="polite">
+  <div class="count"><b id="visits" style="font-weight:200">0</b> <span id="goal"></span></div>
+  <div class="line"><i id="bar"></i></div>
+  <div class="next" id="nextText"></div>
+</div>
+
+<div class="hud empty" id="empty">Tap a sticker to begin<small>then raise your hand</small></div>
+
+<div class="hud join"><div class="txt">Tap a sticker<br>or scan</div><div class="qr" id="qr"></div></div>
+
+<div class="hud banner" id="banner"><div class="k">Unlocked</div><h2 id="bannerTitle"></h2></div>
+
+<div class="hud demo" role="toolbar" aria-label="Demo controls">
+  <span class="tag" title="Prototype: the screen stands in for the projected wall, and the mouse (or touch) stands in for a visitor's hand. Camera hand tracking comes later.">Demo · mouse = hand</span>
+  <button data-scene="market">Market</button>
+  <button data-scene="park">Theme park queue</button>
+  <button data-scene="festival">Festival</button>
+  <span class="sep"></span>
+  <button id="crowdBtn" aria-pressed="false">Simulate crowd</button>
+</div>
+
+<div class="offline" id="offline">Reconnecting</div>
+
+<script src="vendor/qrcode.js"></script>
+<script src="shared.js"></script>
+<script src="wall.js"></script>
+</body>
+</html>

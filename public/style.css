@@ -1,0 +1,41 @@
+:root {
+  --ink: #2a1e32;
+  --ink-soft: #6b5d75;
+  --paper: #fff8ef;
+  --card: #ffffff;
+  --line: #eadfd2;
+  --accent: #7b5cff;
+  --accent-ink: #ffffff;
+  --warm: #ff8a4c;
+  --good: #3fa66b;
+  --sim: #b4581a;
+  --sim-bg: #fff1e2;
+  --radius: 18px;
+  --font: 'Fredoka', ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font-family: var(--font); color: var(--ink); background: var(--paper); -webkit-font-smoothing: antialiased; }
+button { font: inherit; cursor: pointer; }
+a { color: var(--accent); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5em;
+  border: 0; border-radius: 999px; padding: .8em 1.4em; font-weight: 600; font-size: 1rem;
+  background: var(--accent); color: var(--accent-ink);
+  box-shadow: 0 3px 0 rgba(0,0,0,.18); transition: transform .08s ease, box-shadow .08s ease;
+}
+.btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.18); }
+.btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--line); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Every simulated / faked piece of the experience wears this tag. */
+.sim-tag {
+  display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--sim); background: var(--sim-bg); border: 1.5px dashed var(--sim); border-radius: 6px; padding: .15em .5em;
+}
+.real-tag {
+  display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--good); background: #e8f6ee; border-radius: 6px; padding: .15em .5em;
+}
+[hidden] { display: none !important; }
