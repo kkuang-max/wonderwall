@@ -307,7 +307,7 @@
     const wants = new Map();
     for (const a of actors.values()) {
       a.wantHand = null;
-      if (a.leaving || dancing) continue;
+      if (a.leaving) continue;   // dancing characters still follow a hand that points at them
       let best = null, bd = reach;
       for (const h of live) { const d = distTo(a, h); if (d < bd) { bd = d; best = h; } }
       const cur = a.handId && hands.get(a.handId);
@@ -351,8 +351,6 @@
       if (a.leaving) {
         a.fade -= dt * .5; a.baseY -= dt * 20; want = 0;
         if (a.fade <= 0) { actors.delete(a.id); continue; }
-      } else if (dancing) {
-        want = 0;
       } else if (a.handId) {
         const h = hands.get(a.handId);
         const dx = h.x + a.slot * a.size * 1.6 - a.x;
@@ -366,6 +364,8 @@
         if (handStill(h) && Math.random() < dt * .7) {
           fx.push({ kind: 'mote', x: a.x + rand(-a.size, a.size), y: a.y - a.size * .5, vy: -rand(15, 35), r: rand(1.2, 2.4), color: h.color, life: 1.6, max: 1.6 });
         }
+      } else if (dancing) {
+        want = 0;   // characters nobody is pointing at dance in place
       } else {
         if (airborne) a.baseY += (a.homeY - a.baseY) * Math.min(1, dt * .8);
         a.pause -= dt;
