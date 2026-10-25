@@ -56,6 +56,9 @@
   .cam { left: 3vw; bottom: calc(3vh + 64px); display: flex; align-items: flex-end; gap: 10px; }
   .cam video { width: clamp(120px, 11vw, 180px); aspect-ratio: 4 / 3; object-fit: cover; transform: scaleX(-1); border-radius: 10px; opacity: .55;
     border: 1px solid var(--faint); background: #000; }
+  .cam button { pointer-events: auto; border: 0; background: transparent; color: var(--dim); font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+    padding: 4px 0; text-decoration: underline; text-underline-offset: 3px; }
+  .cam button:hover { color: var(--fg); }
   .cam .status { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); max-width: 220px; line-height: 1.6; }
 
   .offline { position: fixed; z-index: 4; top: 12px; left: 50%; transform: translateX(-50%); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: #ffd36e; display: none; }
@@ -89,7 +92,7 @@
   <button id="camBtn" aria-pressed="false" title="Track fingertips with this computer's camera (C)">Camera hands</button>
 </div>
 
-<div class="hud cam" id="cam" hidden><video id="camVideo" playsinline muted></video><div class="status" id="camStatus"></div></div>
+<div class="hud cam" id="cam" hidden><video id="camVideo" playsinline muted hidden></video><div><div class="status" id="camStatus"></div><button id="camView" title="Show or hide the camera image (V)">Show camera</button></div></div>
 
 <div class="offline" id="offline">Reconnecting</div>
 

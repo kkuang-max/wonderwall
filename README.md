@@ -59,7 +59,7 @@ A tap or click sends a ripple.
 Click **Camera hands** in the demo bar (or press `C`) and allow the camera. The wall uses Google's
 MediaPipe Hand Landmarker, which runs in the browser with no server, to find up to 4 index fingertips.
 Each fingertip acts as a hand: characters gather at it, and pinching thumb and index together acts as a tap.
-A small mirrored preview shows what the camera sees.
+The camera image is hidden by default. Click **Show camera** (or press `V`) to see a small mirrored preview.
 
 - The camera needs `https://` or `localhost`. The Vercel deployment works as-is.
 - For a real install, put the camera under or above the projected wall, facing the people in front of it.
@@ -75,4 +75,4 @@ A small mirrored preview shows what the camera sees.
 | Visitor's hands | Real with **Camera hands** (fingertip tracking). Mouse and touch also work |
 | "Simulate a sticker tap" / "Simulate crowd" | Simulated, and labelled on screen |
 
-**Wall keys:** `1` `2` `3` switch scene · `S` simulate crowd · `H` hide the demo bar · `C` camera hands · **Shift+R** reset the current scene.
+**Wall keys:** `1` `2` `3` switch scene · `S` simulate crowd · `H` hide the demo bar · `C` camera hands · `V` show/hide camera image · **Shift+R** reset the current scene.

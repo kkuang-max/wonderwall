@@ -174,6 +174,18 @@
   }
   $('camBtn').onclick = () => (cam || camStarting ? stopCamera() : startCamera());
 
+  // The preview is hidden by default (tracking still runs); the choice is remembered on this screen.
+  let camPreview = false;
+  try { camPreview = localStorage.getItem('ww:camPreview') === '1'; } catch {}
+  function setCamPreview(on) {
+    camPreview = on;
+    $('camVideo').hidden = !on;
+    $('camView').textContent = on ? 'Hide camera' : 'Show camera';
+    try { localStorage.setItem('ww:camPreview', on ? '1' : '0'); } catch {}
+  }
+  setCamPreview(camPreview);
+  $('camView').onclick = () => setCamPreview(!camPreview);
+
   function updateCamera() {
     if (!cam || cam.video.readyState < 2) return;
     const now = performance.now();
@@ -1006,6 +1018,7 @@
     else if (e.key === 's') toggleCrowd();
     else if (e.key === 'h') document.body.classList.toggle('hidden-demo');
     else if (e.key === 'c') (cam || camStarting ? stopCamera() : startCamera());
+    else if (e.key === 'v') setCamPreview(!camPreview);
     else if (e.key === 'R' && e.shiftKey && confirm('Reset this scene? This clears its characters, items and unlocks.')) await fetch('/api/reset', { method: 'POST' });
   });
 
