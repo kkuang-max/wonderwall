@@ -54,13 +54,25 @@ Characters never speak. They react only with motion and light.
 
 A tap or click sends a ripple.
 
+## Camera hand tracking
+
+Click **Camera hands** in the demo bar (or press `C`) and allow the camera. The wall uses Google's
+MediaPipe Hand Landmarker, which runs in the browser with no server, to find up to 4 index fingertips.
+Each fingertip acts as a hand: characters gather at it, and pinching thumb and index together acts as a tap.
+A small mirrored preview shows what the camera sees.
+
+- The camera needs `https://` or `localhost`. The Vercel deployment works as-is.
+- For a real install, put the camera under or above the projected wall, facing the people in front of it.
+  Movement is mirrored, so moving your hand left moves it left on the wall.
+- The model (~8 MB) loads from Google's CDN the first time, so the wall needs internet access.
+
 ## Real vs. simulated
 
 | Piece | Status |
 |---|---|
 | Shared world across devices, NFC read/write (Android Chrome), QR scan | Real |
 | Projected wall | Stand-in: any browser full screen |
-| Visitor's hands | Simulated with the mouse and touch points (camera tracking later) |
+| Visitor's hands | Real with **Camera hands** (fingertip tracking). Mouse and touch also work |
 | "Simulate a sticker tap" / "Simulate crowd" | Simulated, and labelled on screen |
 
-**Wall keys:** `1` `2` `3` switch scene · `S` simulate crowd · `H` hide the demo bar · **Shift+R** reset the current scene.
+**Wall keys:** `1` `2` `3` switch scene · `S` simulate crowd · `H` hide the demo bar · `C` camera hands · **Shift+R** reset the current scene.

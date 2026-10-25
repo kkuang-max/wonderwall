@@ -128,6 +128,88 @@
     for (const h of hands.values()) { h.x += (h.rx - h.x) * k; h.y += (h.ry - h.y) * k; }
   }
 
+  // ---------- camera hand tracking (MediaPipe Hand Landmarker, runs in the browser) ----------
+  // Each visible index fingertip becomes a hand, exactly like the mouse: characters gather at it.
+  // Pinching thumb and index together works like a click (ripple + hop).
+  const MP = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/';
+  const MP_MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+  const CAM_MARGIN = .12;   // reach the wall's edges without stretching to the camera's edges
+  let cam = null, camSeq = 0, camStarting = false;
+
+  function camStatus(text) { $('camStatus').textContent = text; }
+
+  async function startCamera() {
+    if (cam || camStarting) return;
+    camStarting = true;
+    $('cam').hidden = false; $('camBtn').setAttribute('aria-pressed', 'true');
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('Camera needs https:// or localhost');
+      camStatus('Asking for the camera…');
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false });
+      const video = $('camVideo'); video.srcObject = stream; await video.play();
+      camStatus('Loading hand tracking…');
+      const vision = await import(MP + 'vision_bundle.mjs');
+      const files = await vision.FilesetResolver.forVisionTasks(MP + 'wasm');
+      const opts = (delegate) => ({ baseOptions: { modelAssetPath: MP_MODEL, delegate }, runningMode: 'VIDEO', numHands: 4,
+        minHandDetectionConfidence: .5, minHandPresenceConfidence: .5, minTrackingConfidence: .5 });
+      let landmarker;
+      try { landmarker = await vision.HandLandmarker.createFromOptions(files, opts('GPU')); }
+      catch { landmarker = await vision.HandLandmarker.createFromOptions(files, opts('CPU')); }
+      cam = { stream, video, landmarker, lastDetect: 0, lastVideoTime: -1 };
+      camStatus('Point a finger at the wall');
+    } catch (e) {
+      camStatus('Camera unavailable: ' + (e && e.name === 'NotAllowedError' ? 'permission was blocked' : (e && e.message) || e));
+      stopCamera(true);
+    } finally { camStarting = false; }
+  }
+
+  function stopCamera(keepStatus) {
+    if (cam) { cam.stream.getTracks().forEach((t) => t.stop()); try { cam.landmarker.close(); } catch {} }
+    else { const v = $('camVideo'); if (v.srcObject) v.srcObject.getTracks().forEach((t) => t.stop()); }
+    $('camVideo').srcObject = null;
+    cam = null;
+    for (const [id, h] of hands) if (h.cam) hands.delete(id);
+    $('camBtn').setAttribute('aria-pressed', 'false');
+    if (!keepStatus) $('cam').hidden = true;
+  }
+  $('camBtn').onclick = () => (cam || camStarting ? stopCamera() : startCamera());
+
+  function updateCamera() {
+    if (!cam || cam.video.readyState < 2) return;
+    const now = performance.now();
+    if (now - cam.lastDetect < 33 || cam.video.currentTime === cam.lastVideoTime) return;  // ~30 detections/s
+    cam.lastDetect = now; cam.lastVideoTime = cam.video.currentTime;
+    let res;
+    try { res = cam.landmarker.detectForVideo(cam.video, now); } catch (e) { console.error(e); return; }
+
+    const tips = (res.landmarks || []).map((lm) => {
+      const tip = lm[8], thumb = lm[4], wrist = lm[0], knuckle = lm[9];
+      const nx = clamp((tip.x - CAM_MARGIN) / (1 - 2 * CAM_MARGIN), 0, 1);
+      const ny = clamp((tip.y - CAM_MARGIN) / (1 - 2 * CAM_MARGIN), 0, 1);
+      const handSize = Math.hypot(wrist.x - knuckle.x, wrist.y - knuckle.y) || .1;
+      return { x: (1 - nx) * W, y: ny * H, pinch: Math.hypot(tip.x - thumb.x, tip.y - thumb.y) / handSize };
+    });
+
+    // Keep identities stable: match each fingertip to the nearest camera hand from last frame.
+    const pool = [...hands.values()].filter((h) => h.cam);
+    for (const t of tips) {
+      let best = null, bd = Math.max(W * .25, 120);
+      for (const h of pool) { const d = Math.hypot(h.rx - t.x, h.ry - t.y); if (d < bd) { bd = d; best = h; } }
+      let h = best;
+      if (h) pool.splice(pool.indexOf(h), 1);
+      else { h = addHand('cam' + camSeq++, t.x, t.y, false); h.cam = true; h.pinched = false; }
+      moveHand(h, t.x, t.y);
+      h.seenAt = now;
+      const pinched = h.pinched ? t.pinch < .45 : t.pinch < .3;   // hysteresis so one pinch = one tap
+      if (pinched && !h.pinched) tapHand(h);
+      h.pinched = pinched;
+    }
+    // Drop hands that left the frame (wall-clock, so a stalled render loop can't keep them alive); never keep more than 4.
+    const camHands = [...hands.values()].filter((h) => h.cam).sort((p, q) => q.seenAt - p.seenAt);
+    camHands.forEach((h, i) => { if (now - h.seenAt > 600 || i >= 4) hands.delete(h.id); });
+    camStatus(tips.length ? tips.length + ' hand' + (tips.length > 1 ? 's' : '') + ' · pinch to tap' : 'Point a finger at the wall');
+  }
+
   // Two people's hands close together → a light bridge with sparks crossing it.
   function updateBridges(dt) {
     const hs = [...hands.values()].filter(handActive), seen = new Set();
@@ -906,6 +988,7 @@
       if (a) fx.push({ kind: 'mote', x: a.x + rand(-a.size, a.size), y: a.y - a.size, vy: -rand(30, 60), r: rand(1.2, 2.4), color: WW.CHARS[a.char].color, life: 1.2, max: 1.2 });
     }
     const t0 = performance.now();
+    updateCamera();
     updateHands(dt);
     updateBridges(dt);
     updateActors(dt);
@@ -922,6 +1005,7 @@
     if (/^[1-3]$/.test(e.key)) setScene(ids[+e.key - 1]);
     else if (e.key === 's') toggleCrowd();
     else if (e.key === 'h') document.body.classList.toggle('hidden-demo');
+    else if (e.key === 'c') (cam || camStarting ? stopCamera() : startCamera());
     else if (e.key === 'R' && e.shiftKey && confirm('Reset this scene? This clears its characters, items and unlocks.')) await fetch('/api/reset', { method: 'POST' });
   });
 

@@ -52,6 +52,12 @@
   .demo .sep { width: 1px; height: 14px; background: var(--faint); margin: 0 6px; }
   .hidden-demo .demo { display: none; }
 
+  /* Camera hand tracking: a small mirrored preview so people can see what the wall sees. */
+  .cam { left: 3vw; bottom: calc(3vh + 64px); display: flex; align-items: flex-end; gap: 10px; }
+  .cam video { width: clamp(120px, 11vw, 180px); aspect-ratio: 4 / 3; object-fit: cover; transform: scaleX(-1); border-radius: 10px; opacity: .55;
+    border: 1px solid var(--faint); background: #000; }
+  .cam .status { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); max-width: 220px; line-height: 1.6; }
+
   .offline { position: fixed; z-index: 4; top: 12px; left: 50%; transform: translateX(-50%); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: #ffd36e; display: none; }
 </style>
 </head>
@@ -73,13 +79,17 @@
 <div class="hud banner" id="banner"><div class="k">Unlocked</div><h2 id="bannerTitle"></h2></div>
 
 <div class="hud demo" role="toolbar" aria-label="Demo controls">
-  <span class="tag" title="Prototype: the screen stands in for the projected wall, and the mouse (or touch) stands in for a visitor's hand. Camera hand tracking comes later.">Demo · mouse = hand</span>
+  <span class="tag" title="Prototype: the screen stands in for the projected wall. Hands come from the mouse, touch, or the camera (Camera hands).">Demo · mouse or camera = hand</span>
   <button data-scene="market">Market</button>
   <button data-scene="park">Theme park queue</button>
   <button data-scene="festival">Festival</button>
   <span class="sep"></span>
   <button id="crowdBtn" aria-pressed="false">Simulate crowd</button>
+  <span class="sep"></span>
+  <button id="camBtn" aria-pressed="false" title="Track fingertips with this computer's camera (C)">Camera hands</button>
 </div>
+
+<div class="hud cam" id="cam" hidden><video id="camVideo" playsinline muted></video><div class="status" id="camStatus"></div></div>
 
 <div class="offline" id="offline">Reconnecting</div>
 
